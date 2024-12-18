@@ -49,3 +49,5 @@ logs/
 
 # Documentation
 docs/_build/
+
+data/
