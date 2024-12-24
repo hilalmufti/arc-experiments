@@ -70,14 +70,6 @@ easy = {
     "1c786137",
 }
 
-
-def get_functions(module):
-    return [
-        obj
-        for name, obj in inspect.getmembers(module)
-        if inspect.isfunction(obj) and obj.__module__ == module.__name__
-    ]
-
 def get_taskname(filename: str) -> str:
     return filename[:-5]
 
