@@ -1,13 +1,15 @@
 [project]
-name = "arc"
+name = "arc-experiments"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ipykernel>=6.29.5",
     "tqdm>=4.67.0",
-    "matplotlib>=3.9.2",
+    "matplotlib>=3.10.0",
+    "numpy>=2.2.1",
+    "ipykernel>=6.29.5",
+    "nltk>=3.9.1",
 ]
 
 [build-system]

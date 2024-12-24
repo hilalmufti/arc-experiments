@@ -334,7 +334,7 @@ if __name__ == "__main__":
     primitive_names = {p.__name__ for p in DSL_primitives}
     print(f"DSL consists of {len(DSL_primitives)} primitives: {primitive_names}")
 
-    MAX_DEPTH = 10
+    MAX_DEPTH = 20
     # program_strings = search(MAX_DEPTH, primitive_names)
     # print('\n'.join([*program_strings[:10], '...']))
     # print(f"Space to search consists of {len(program_strings)} programs:\n")
@@ -342,5 +342,5 @@ if __name__ == "__main__":
 
     tasks = load_tasks("training")
     # guesses = solve(tasks, programs)
-    guesses = solve_mcts(tasks, primitive_names, MAX_DEPTH, num_simulations=3000)
+    guesses = solve_mcts(tasks, primitive_names, MAX_DEPTH, num_simulations=4000000)
     print(guesses)
