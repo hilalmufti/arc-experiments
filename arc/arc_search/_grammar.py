@@ -14,7 +14,7 @@ Stmt -> Var '=' FunApp
 OStmt -> 'O' '=' FunApp
 Var -> 'x' Number
 Number -> '1' | '2' | '3'
-FunApp -> 'identity' '(' Expr ')' | 'add' '(' Expr ',' Expr ')' | 'subtract' '(' Expr ',' Expr ')'
+FunApp -> 'identity' '(' Expr ')' | 'add' '(' Expr ',' Expr ')' | 'subtract' '(' Expr ',' Expr ')' | Var '(' Expr ')'
 Expr -> 'I' | Var | Lit
 Lit -> 'F' | 'T' | 'ZERO' | 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN' | 'EIGHT' | 'NINE' | 'TEN' | 'NEG_ONE' | 'NEG_TWO'
 Return -> 'return' 'O'""")
