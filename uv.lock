@@ -26,7 +26,7 @@ dependencies = [
 requires-dist = [
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "matplotlib", specifier = ">=3.10.0" },
-    { name = "nltk" },
+    { name = "nltk", specifier = ">=3.9.1" },
     { name = "numpy", specifier = ">=2.2.1" },
     { name = "tqdm", specifier = ">=4.67.0" },
 ]

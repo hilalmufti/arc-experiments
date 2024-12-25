@@ -1,5 +1,6 @@
 from enum import Enum, auto
 from dataclasses import dataclass
+from functools import partial
 import inspect
 
 from nltk.grammar import CFG
@@ -8,28 +9,46 @@ from nltk.grammar import CFG
 # TODO: fill in this cfg
     # [ ] literals
 
+def to_lit(s):
+    return f'\'{s}\''
+
+PROGRAM = 'Program'
+STMT_LIST = 'StmtList'
+STMT = 'Stmt'
+O_STMT = 'OStmt'
+VAR = 'Var'
+NUMBER = 'Number'
+FUN_APP = 'FunApp'
+EXPR = 'Expr'
+LIT = 'Lit'
+RETURN = 'Return'
+
+LIT_SEMICOLON = to_lit('; ')
+LIT_COMMA = to_lit(', ')
+LIT_ASSIGN = to_lit(' = ')
+LIT_VAR_I = to_lit('I')
+LIT_VAR_O = to_lit('O')
+LIT_VAR_X = to_lit('x')
+LIT_LPAREN = to_lit('(')
+LIT_RPAREN = to_lit(')')
+LIT_RETURN = to_lit('return ')
+
+
+ARROW = '->'
+BNF_OP = '::='
+
 def count_params(fn):
     return len(inspect.signature(fn).parameters)
 
-
-def show_funapp(ss):
-    out = ""
-    for name, n_params in ss.items():
-        out += f'\'{name}\''
-        if n_params > 0:
-            out += ' \'(\''
-            for _ in range(n_params - 1):
-                out += ' Expr \', \''
-            out += ' Expr \')\''
-        out += ' | '
-    return out[:-3]
-
-def get_functions(module):
+def read_functions(module):
     return [
         obj
         for name, obj in inspect.getmembers(module)
         if inspect.isfunction(obj) and obj.__module__ == module.__name__
     ]
+
+def read_constants(module):
+    return [name for name, obj in inspect.getmembers(module) if not name.startswith('__')]
 
 small_grammar = CFG.fromstring("""
 Program -> OStmt Return | StmtList OStmt Return
@@ -61,5 +80,31 @@ Return -> 'return ' 'O'""")
 # [ ] functions + their signatures
 # [ ] max program length
 # [ ] whether or not you can call variables
-def dsl_to_grammar(dsl):
-    ...
+def dsl2cfg(dsl: dict[str, int], constants: list[str], n=10):
+    show = partial(show_rule, symbol='->')
+
+    cfg = ""
+    cfg += show(PROGRAM, [[O_STMT, RETURN], [STMT_LIST, O_STMT, RETURN]])
+    cfg += show(STMT_LIST, [[STMT], [STMT_LIST, STMT]])
+    cfg += show(STMT, [[VAR, LIT_ASSIGN, FUN_APP, LIT_SEMICOLON]])
+    cfg += show(O_STMT, [[LIT_VAR_O, LIT_ASSIGN, FUN_APP, LIT_SEMICOLON]])
+    cfg += show(VAR, [[LIT_VAR_X, NUMBER]])
+    cfg += show(NUMBER, productize_number(n))
+    cfg += show(FUN_APP, [productive_primitive(name, n_params) for name, n_params in dsl.items()] + [[VAR, LIT_LPAREN, EXPR, LIT_RPAREN]])
+    cfg += show(EXPR, [[LIT_VAR_I], [VAR], [LIT]])
+    cfg += show(LIT, [[to_lit(c)] for c in constants])
+    cfg += show(RETURN, [[LIT_RETURN, LIT_VAR_O]])
+    return cfg
+
+def show_rule(lhs, ps, symbol='->'):
+    return f'{lhs} {symbol} {show_prod(ps)}\n'
+
+def show_prod(ps):
+    return ' | '.join(map(' '.join, ps))
+
+def productize_number(n):
+    return [[to_lit(str(i))] for i in range(1, n + 1)]
+
+def productive_primitive(name, n_params):
+    exprs = f" {LIT_COMMA} ".join([EXPR] * n_params)
+    return [to_lit(name), LIT_LPAREN, exprs, LIT_RPAREN]
