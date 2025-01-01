@@ -14,7 +14,7 @@ from tqdm.contrib.concurrent import process_map
 
 from arc.load_data import load_tasks
 from arc.arc_search._grammar import read_functions, read_constants, count_params, dsl2cfg
-from arc.utils import set_seed
+from arc.utils import set_seed, timer
 
 from arc.arc_dsl.dsl import *
 from arc.arc_dsl.constants import *
@@ -22,16 +22,6 @@ import arc.arc_dsl.dsl as dsl
 import arc.arc_dsl.constants as constants
 
 SEED = 546
-
-def dedup(xs):
-    seen = set()
-    ys = []
-    for x in xs:
-        if x not in seen:
-            ys.append(x)
-            seen.add(x)
-    return ys
-
 
 def search(depth, primitive_names):
     program_strings = []
@@ -154,20 +144,16 @@ if __name__ == "__main__":
     cfg_str = dsl2cfg(fs, cs, prog_len)
     grammar = CFG.fromstring(cfg_str)
 
-    n_programs = (2**27 + 2**28) // 2
-    # n_programs = 2**17
+    # n_programs = (2**27 + 2**28) // 2
+    n_programs = 2**17
 
-    tic = time.time()
-    generated = tqdm.tqdm(enumerate(generate(grammar, n=n_programs)), total=n_programs, ncols=100, desc="Generating programs")
-    program_strings = [make_program_str(i, p) for i, p in generated]
-    toc = time.time()
-    print(f"Generated {n_programs} programs in {toc - tic:.2f} seconds")
+    with timer(f"Generated {n_programs} programs in:"):
+        generated = tqdm.tqdm(enumerate(generate(grammar, n=n_programs)), total=n_programs, ncols=100, desc="Generating programs")
+        program_strings = [make_program_str(i, p) for i, p in generated]
 
-    tic = time.time()
-    for prog_str in (pbar := tqdm.tqdm(program_strings, total=len(program_strings), ncols=100, desc="Evaluating programs")):
-        exec(prog_str)
-    toc = time.time()
-    print(f"Evaluated {n_programs} programs in {toc - tic:.2f} seconds")
+    with timer(f"Evaluated {n_programs} programs in:"):
+        for ps in tqdm.tqdm(program_strings, total=n_programs, ncols=100, desc="Evaluating programs"):
+            exec(ps)
 
     print(f"Space to search consists of {len(program_strings)} programs:\n")
     print('\n'.join([*program_strings[:5], '...']))
