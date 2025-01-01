@@ -10,7 +10,8 @@ from datetime import datetime
 import tqdm
 import numpy as np
 
-from arc.load_data import load_tasks, get_functions
+from arc.load_data import load_tasks
+from arc.arc_search._grammar import read_functions
 from arc.arc_dsl.constants import *
 import arc.arc_dsl.dsl as dsl
 from arc.arc_dsl.dsl import *
@@ -260,39 +261,6 @@ def seq_to_program(primitives):
     return program_strings
 
 
-def search(depth, primitive_names):
-    program_strings = []
-    for depth in tqdm.trange(1, depth + 1):
-        primitive_tuples = itertools.product(*[primitive_names] * depth)
-        for primitives in primitive_tuples:
-            left_side = "".join([p + "(" for p in primitives])
-            right_side = ")" * depth
-            program_string = f"lambda I: {left_side}I{right_side}"
-            program_strings.append(program_string)
-    return program_strings
-
-
-def solve(tasks, programs):
-    guesses = dict()
-    for key, task in tqdm.tqdm(tasks.items()):
-        train_inputs = tuple((example["input"] for example in task["train"]))
-        train_outputs = tuple((example["output"] for example in task["train"]))
-        hypotheses = []
-        # iterate over all programs
-        for program_string, program in programs.items():
-            try:
-                if all(program(i) == o for i, o in zip(train_inputs, train_outputs)):
-                    hypotheses.append(program_string)
-            except:
-                pass
-        # select first program for making predictions
-        if len(hypotheses) > 0:
-            print(f"found {len(hypotheses)} candidate programs for task {key}!")
-            guesses[key] = hypotheses[0]
-    print(f"\nMade guesses for {len(guesses)} tasks")
-    return guesses
-
-
 def solve_mcts(tasks, primitive_names, max_depth, num_simulations=1000):
     guesses = {}
     logger = logging.getLogger(__name__)
@@ -330,9 +298,9 @@ def solve_mcts(tasks, primitive_names, max_depth, num_simulations=1000):
 if __name__ == "__main__":
     set_seed(SEED)
 
-    DSL_primitives = get_functions(dsl)
-    primitive_names = {p.__name__ for p in DSL_primitives}
-    print(f"DSL consists of {len(DSL_primitives)} primitives: {primitive_names}")
+    prims = read_functions(dsl)
+    prim_names = {p.__name__ for p in prims}
+    print(f"DSL consists of {len(prims)} primitives: {prim_names}")
 
     MAX_DEPTH = 20
     # program_strings = search(MAX_DEPTH, primitive_names)
@@ -342,5 +310,5 @@ if __name__ == "__main__":
 
     tasks = load_tasks("training")
     # guesses = solve(tasks, programs)
-    guesses = solve_mcts(tasks, primitive_names, MAX_DEPTH, num_simulations=4000000)
+    guesses = solve_mcts(tasks, prim_names, MAX_DEPTH, num_simulations=4000000)
     print(guesses)
