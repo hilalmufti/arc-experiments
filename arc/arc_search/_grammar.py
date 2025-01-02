@@ -76,7 +76,7 @@ Expr -> 'I' | Var | Lit
 Lit -> 'F' | 'T' | 'ZERO' | 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN' | 'EIGHT' | 'NINE' | 'TEN' | 'NEG_ONE' | 'NEG_TWO' | 'DOWN' | 'RIGHT' | 'UP' | 'LEFT' | 'ORIGIN' | 'NEG_UNITY' | 'UP_RIGHT' | 'DOWN_LEFT' | 'ZERO_BY_TWO' | 'TWO_BY_ZERO' | 'TWO_BY_TWO' | 'THREE_BY_THREE'
 Return -> 'return ' 'O'""")
                          
-# [ ] whether or not you can call variables
+# [ ] TODO whether or not you can call variables
 def dsl2cfg(dsl: dict[str, int], constants: list[str], n=10):
     show = partial(show_rule, symbol='->')
 
@@ -105,3 +105,7 @@ def productize_number(n):
 def productive_primitive(name, n_params):
     exprs = f" {LIT_COMMA} ".join([EXPR] * n_params)
     return [to_lit(name), LIT_LPAREN, exprs, LIT_RPAREN]
+
+# TODO
+def branching_factor(cfg):
+    raise NotImplementedError

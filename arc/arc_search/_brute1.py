@@ -5,7 +5,6 @@ import os
 import time
 import traceback
 from itertools import product, islice
-from multiprocessing import Pool
 
 
 from nltk.grammar import CFG
@@ -45,7 +44,7 @@ def solve(tasks, programs):
         # iterate over all programs
         # for program_string, program in tqdm.tqdm(programs.items()):
         n_error = 0
-        for p, program_string in enumerate(programs):
+        for p, program_string in tqdm.tqdm(enumerate(programs), total=len(programs), ncols=80, desc="Solving..."):
             program = globals()[f'p{p}']
             try:
                 if all(program(i) == o for i, o in zip(train_inputs, train_outputs)):
@@ -54,78 +53,41 @@ def solve(tasks, programs):
                 n_error += 1
                 pass
         # select first program for making predictions
-        errors.append(n_error / len(programs))
         if len(hypotheses) > 0:
             print(f" found {len(hypotheses)} candidate programs for task {key}!")
             guesses[key] = hypotheses[0]
+        errors.append(n_error / len(programs))
     print('Average error rate:', sum(errors) / len(errors))
     print(f"\nMade guesses for {len(guesses)} tasks")
     return guesses
 
-def make_fnhead_str(name, *args):
+def make_fnstr_head(name, *args):
     return f"def {name}({', '.join(args)})"
 
-def fnbody_list_to_str(body):
+def fnstr_join_body(body):
     return "".join(body)
 
-def make_fn_str(head, body):
+def make_fnstr(head, body):
     if isinstance(head, tuple):
         name, *args = head
-        head = make_fnhead_str(name, *args)
+        head = make_fnstr_head(name, *args)
     elif not isinstance(head, str):
-        raise ValueError(f"Expected head to be a tuple or string, got {type(head)}")
+        raise TypeError(f"Expected head to be a tuple or string, got {type(head)}")
     
     if isinstance(body, list):
-        body = fnbody_list_to_str(body)
+        body = fnstr_join_body(body)
     elif not isinstance(body, str):
-        raise ValueError(f"Expected body to be a list or string, got {type(body)}")
+        raise TypeError(f"Expected body to be a list or string, got {type(body)}")
     
     out = f"{head}: {body}"
     return out
 
-def make_programhead_str(i):
-    return make_fnhead_str(f'p{i}', 'I')
+def make_progstr_head(i):
+    return make_fnstr_head(f'p{i}', 'I')
 
-def make_program_str(i, body):
-    out = make_fn_str(make_programhead_str(i), fnbody_list_to_str(body))
+def make_progstr(i, body):
+    out = make_fnstr(make_progstr_head(i), fnstr_join_body(body))
     return out
-
-def generate_chunk(args):
-    start_idx, chunk_size, grammar = args
-    return [
-        f"def p{i}(I): {''.join(p)}"
-        for i, p in enumerate(
-            islice(generate(grammar), chunk_size),
-            start=start_idx
-        )
-    ]
-
-def generate_program_strings_parallel(grammar, n_programs, chunk_size=10000, num_processes=None):
-    num_chunks = (n_programs + chunk_size - 1) // chunk_size
-    chunks = [
-        (i * chunk_size, 
-         min(chunk_size, n_programs - i * chunk_size),
-         grammar)
-        for i in range(num_chunks)
-    ]
-    
-    with Pool(processes=num_processes) as pool:
-        results = list(
-            tqdm.tqdm(
-                pool.imap(generate_chunk, chunks),
-                total=num_chunks,
-                ncols=80
-            )
-        )
-    
-    # Flatten results
-    program_strings = [
-        prog_str 
-        for chunk in results 
-        for prog_str in chunk
-    ]
-    
-    return program_strings
 
 if __name__ == "__main__":
     set_seed(SEED)
@@ -144,27 +106,24 @@ if __name__ == "__main__":
     cfg_str = dsl2cfg(fs, cs, prog_len)
     grammar = CFG.fromstring(cfg_str)
 
-    # n_programs = (2**27 + 2**28) // 2
-    n_programs = 2**17
+    # n_programs = (2**27 + ((2**27 + 2**28) // 2)) // 2
+    n_programs = 2**26
+    # n_programs = 2**17
 
     with timer(f"Generated {n_programs} programs in:"):
-        generated = tqdm.tqdm(enumerate(generate(grammar, n=n_programs)), total=n_programs, ncols=100, desc="Generating programs")
-        program_strings = [make_program_str(i, p) for i, p in generated]
+        generated = enumerate(generate(grammar, n=n_programs))
+        program_strings = [make_progstr(i, p) for i, p in tqdm.tqdm(generated, total=n_programs, ncols=100, desc="Generating programs")]
 
     with timer(f"Evaluated {n_programs} programs in:"):
         for ps in tqdm.tqdm(program_strings, total=n_programs, ncols=100, desc="Evaluating programs"):
             exec(ps)
 
-    print(f"Space to search consists of {len(program_strings)} programs:\n")
+    print(f"|search space| = {len(program_strings)} programs:\n")
     print('\n'.join([*program_strings[:5], '...']))
     print('\n'.join([*program_strings[-5:]]))
     print()
 
-    n_procs = os.cpu_count()
-
-    # programs = {prog_str: exec(prog_str) for prog_str in tqdm.tqdm(program_strings, total=len(program_strings), ncols=80)}
-
     tasks = load_tasks("training")
-    # guesses = solve(tasks, programs)
-    guesses = solve(tasks, program_strings)
+    with timer(f"Solved {len(tasks)} tasks in:"):
+        guesses = solve(tasks, program_strings)
     print(guesses)
