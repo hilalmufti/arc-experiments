@@ -89,7 +89,8 @@ def make_progstr(i, body):
     out = make_fnstr(make_progstr_head(i), fnstr_join_body(body))
     return out
 
-if __name__ == "__main__":
+
+def main(n_programs):
     set_seed(SEED)
 
     prims = read_functions(dsl)
@@ -107,7 +108,7 @@ if __name__ == "__main__":
     grammar = CFG.fromstring(cfg_str)
 
     # n_programs = (2**27 + ((2**27 + 2**28) // 2)) // 2
-    n_programs = 2**26
+    # n_programs = 2**27
     # n_programs = 2**17
 
     with timer(f"Generated {n_programs} programs in:"):
@@ -127,3 +128,9 @@ if __name__ == "__main__":
     with timer(f"Solved {len(tasks)} tasks in:"):
         guesses = solve(tasks, program_strings)
     print(guesses)
+
+
+
+if __name__ == "__main__":
+    # main((2**27 + 2**26) // 2)
+    main(90_000_000)
