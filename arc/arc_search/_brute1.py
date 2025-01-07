@@ -90,7 +90,10 @@ def make_progstr(i, body):
     return out
 
 
-def main(n_programs):
+
+if __name__ == "__main__":
+    # main((2**27 + 2**26) // 2)
+
     set_seed(SEED)
 
     prims = read_functions(dsl)
@@ -110,6 +113,7 @@ def main(n_programs):
     # n_programs = (2**27 + ((2**27 + 2**28) // 2)) // 2
     # n_programs = 2**27
     # n_programs = 2**17
+    n_programs = 88_000_000
 
     with timer(f"Generated {n_programs} programs in:"):
         generated = enumerate(generate(grammar, n=n_programs))
@@ -128,9 +132,3 @@ def main(n_programs):
     with timer(f"Solved {len(tasks)} tasks in:"):
         guesses = solve(tasks, program_strings)
     print(guesses)
-
-
-
-if __name__ == "__main__":
-    # main((2**27 + 2**26) // 2)
-    main(90_000_000)

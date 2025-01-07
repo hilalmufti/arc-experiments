@@ -1,0 +1,10 @@
+name = "ARCLean"
+version = "0.1.0"
+defaultTargets = ["arclean"]
+
+[[lean_lib]]
+name = "ARCLean"
+
+[[lean_exe]]
+name = "arclean"
+root = "Main"
