@@ -10,6 +10,7 @@ dependencies = [
     "numpy>=2.2.1",
     "ipykernel>=6.29.5",
     "nltk>=3.9.1",
+    "hypothesis>=6.123.8",
 ]
 
 [build-system]
