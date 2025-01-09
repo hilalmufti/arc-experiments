@@ -30,22 +30,26 @@ class MCTSNode:
 
     def __repr__(self):
         return f"MCTSNode({self.state}, visits={self.visits}, value={self.value}, children={set(self.children.keys())})"
-    
+
 
 def make_node(state, parent):
     return (state, parent, {}, 0, 0.0)
+
 
 def state(node):
     state, parent, children, visits, value = node
     return state
 
+
 def children(node):
     state, parent, children, visits, value = node
     return children
 
+
 def visits(node):
     state, parent, children, visits, value = node
     return visits
+
 
 def make_verifier(task):
     ins = tuple(example["input"] for example in task["train"])
@@ -56,11 +60,18 @@ def make_verifier(task):
 
     return verifier
 
+
+def make_program_string(state):
+    left_side = "".join([p + "(" for p in state])
+    right_side = ")" * len(state)
+    return f"lambda I: {left_side}I{right_side}"
+
+
 # TODO: add comments
 # TODO: play with this more
 def ucb(q, n, v, C):
     if v == 0 or n == 0:
-        return float('inf')
+        return float("inf")
     exploit = q / n
     explore = C * math.sqrt(math.log(v) / n)
     return exploit + explore
@@ -137,13 +148,9 @@ class MCTS:
         self.logger.info(f"Total nodes created: {self.stats['nodes_created']}")
         self.logger.info(f"Max depth reached: {self.stats['max_depth_reached']}")
 
-    def get_program_string(self, state):
-        left_side = "".join([p + "(" for p in state])
-        right_side = ")" * len(state)
-        return f"lambda I: {left_side}I{right_side}"
 
     def try_program(self, state, error_value=0.0):
-        program_string = self.get_program_string(state)
+        program_string = make_program_string(state)
         self.stats["total_simulations"] += 1
         self.stats["unique_programs_tried"].add(program_string)
         self.stats["max_depth_reached"] = max(
@@ -161,16 +168,12 @@ class MCTS:
             return error_value
 
     def get_ucb(self, node, child_action):
-        return ucb(self.Q[(node.state, child_action)], self.N[(node.state, child_action)], node.visits, self.exploration_constant)
-        # if node.visits == 0 or self.N[(node.state, child_action)] == 0:
-        #     return float("inf")
-        # exploitation = (
-        #     self.Q[(node.state, child_action)] / self.N[(node.state, child_action)]
-        # )
-        # exploration = self.exploration_constant * math.sqrt(
-        #     math.log(node.visits) / self.N[(node.state, child_action)]
-        # )
-        # return exploitation + exploration
+        return ucb(
+            self.Q[(node.state, child_action)],
+            self.N[(node.state, child_action)],
+            node.visits,
+            self.exploration_constant,
+        )
 
     def select(self, node):
         path = []
@@ -199,7 +202,7 @@ class MCTS:
             return node
 
         self.logger.debug(
-            f"Expanding node at depth {len(node.state)}: {self.get_program_string(node.state)}"
+            f"Expanding node at depth {len(node.state)}: {make_program_string(node.state)}"
         )
 
         # Try each primitive as a possible action
@@ -260,7 +263,7 @@ class MCTS:
 
             # If we found a solution, add it to our list
             if reward == 1.0:
-                program_string = self.get_program_string(node.state)
+                program_string = make_program_string(node.state)
                 programs_found.append(program_string)
 
         self.log_final_statistics()
