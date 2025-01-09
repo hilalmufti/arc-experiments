@@ -66,9 +66,9 @@ def make_verifier(task):
 
 
 def make_program_string(state):
-    left_side = "".join([p + "(" for p in reversed(state)])
-    right_side = ")" * len(state)
-    return f"lambda I: {left_side}I{right_side}"
+    lhs = "".join([p + "(" for p in reversed(state)])
+    rhs = ")" * len(state)
+    return f"lambda I: {lhs}I{rhs}"
 
 
 # TODO: add comments
@@ -78,6 +78,17 @@ def ucb(q, n, v, C):
         return float("inf")
     else:
         return q / n + C * math.sqrt(math.log(v) / n) # explore + exploit
+    
+
+def backpropagate(node, reward, Q, N):
+    while node is not None:
+        node.visits += 1
+        if node.parent is not None:
+            action = node.state[-1]
+            N[(node.parent.state, action)] += 1
+            Q[(node.parent.state, action)] += reward
+        node = node.parent
+    return Q, N
 
 
 class MCTS:
@@ -240,13 +251,7 @@ class MCTS:
         return self.try_program(current_state, error_value=0.0)
 
     def backpropagate(self, node, reward):
-        while node is not None:
-            node.visits += 1
-            if node.parent is not None:
-                action = node.state[-1]
-                self.N[(node.parent.state, action)] += 1
-                self.Q[(node.parent.state, action)] += reward
-            node = node.parent
+        backpropagate(node, reward, self.Q, self.N)
 
     def search(self, num_simulations):
         root = MCTSNode()
