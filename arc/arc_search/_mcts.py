@@ -33,7 +33,7 @@ class MCTSNode:
 
 
 def make_node(state, parent=None):
-    return (state, 0, 0.0, parent, [])
+    return [state, 0, 0.0, parent, []]
 
 
 def node_state(node):
@@ -56,30 +56,43 @@ def node_children(node):
     return node[4]
 
 
-def add_child(node, child):
+def node_append(node, child):
     node_children(node).append(child)
     return child
 
 
-def make_toy_tree():
-    root = make_node(())
-    a = add_child(root, make_node(("A",), parent=root))
-    b = add_child(root, make_node(("B",), parent=root))
-    c = add_child(a, make_node(("A", "C"), parent=a))
-    d = add_child(a, make_node(("A", "D"), parent=a))
-    e = add_child(b, make_node(("B", "E"), parent=b))
-    f = add_child(b, make_node(("B", "F"), parent=b))
-    g = add_child(b, make_node(("B", "G"), parent=b))
-    return root, a, b, c, d, e, f, g
+# TODO: remove mutation from this
+def node_visit(node):
+    node[1] += 1
+    return node_visits(node)
+
+
+def node_str(node):
+    return f"{node_state(node)} n={node_visits(node)} v={node_value(node):.2f}"
+
+
+def show_node(node):
+    print(node_str(node))
 
 
 def show_tree(root):
     def show(node, level=0):
-        state, visits, val, parent, cs = node
-        print(f"{'  ' * level}{state} n={visits} v={val:.2f}")
-        for c in cs:
+        print(f"{'  ' * level}{node_str(node)}")
+        for c in node_children(node):
             show(c, level + 1)
     show(root)
+
+
+def make_toy_tree():
+    root = make_node(())
+    a = node_append(root, make_node(("A",), parent=root))
+    b = node_append(root, make_node(("B",), parent=root))
+    c = node_append(a, make_node(("A", "C"), parent=a))
+    d = node_append(a, make_node(("A", "D"), parent=a))
+    e = node_append(b, make_node(("B", "E"), parent=b))
+    f = node_append(b, make_node(("B", "F"), parent=b))
+    g = node_append(b, make_node(("B", "G"), parent=b))
+    return root, a, b, c, d, e, f, g
 
 
 def make_verifier(task):
