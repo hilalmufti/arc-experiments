@@ -55,6 +55,35 @@ def visit(node):
     state, parent, children, visits, value = node
 
 
+def make_toy_tree():
+    root = make_node(())
+    a = make_node(("A",), parent=root)
+    b = make_node(("B",), parent=root)
+    root[2][("A",)] = a  # Add 'a' to root's children dict
+    root[2][("B",)] = b  # Add 'b' to root's children dict
+    
+    c = make_node(("A", "C"), parent=a)
+    d = make_node(("A", "D"), parent=a)
+    a[2][("A", "C")] = c  # Add 'c' to a's children dict
+    a[2][("A", "D")] = d  # Add 'd' to a's children dict
+    
+    e = make_node(("B", "E"), parent=b)
+    f = make_node(("B", "F"), parent=b)
+    g = make_node(("B", "G"), parent=b)
+    b[2][("B", "E")] = e  # Add 'e' to b's children dict
+    b[2][("B", "F")] = f  # Add 'f' to b's children dict
+    b[2][("B", "G")] = g  # Add 'g' to b's children dict
+    
+    return root, a, b, c, d, e, f, g
+
+
+def show_tree(root, level=0):
+    state_val, parent, child_dict, visit_count, value = root
+    print(f"{'  ' * level}{state_val} n={visit_count} v={value:.2f}")
+    for child in children(root).values():
+        show_tree(child, level + 1)
+
+
 def make_verifier(task):
     ins = tuple(example["input"] for example in task["train"])
     outs = tuple(example["output"] for example in task["train"])
@@ -79,7 +108,7 @@ def ucb(q, n, v, C):
     else:
         return q / n + C * math.sqrt(math.log(v) / n) # explore + exploit
     
-
+# TODO: remove mutation from this
 def backpropagate(node, reward, Q, N):
     while node is not None:
         node.visits += 1
