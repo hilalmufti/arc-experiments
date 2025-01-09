@@ -33,32 +33,53 @@ class MCTSNode:
 
 
 def make_node(state, parent=None):
-    return (state, parent, {}, 0, 0.0)
+    return (state, 0, 0.0, parent, [])
 
 
-def add_child(node, state):
-    child = make_node(state, parent=node)
-    node[2][state] = child  # Add child to parent's children dict
+def node_state(node):
+    return node[0]
+
+
+def node_visits(node):
+    return node[1]
+
+
+def node_value(node):
+    return node[2]
+
+
+def node_parent(node):
+    return node[3]
+
+
+def node_children(node):
+    return node[4]
+
+
+def add_child(node, child):
+    node_children(node).append(child)
     return child
 
 
 def make_toy_tree():
     root = make_node(())
-    a = add_child(root, ("A",))
-    b = add_child(root, ("B",))
-    c = add_child(a, ("A", "C"))
-    d = add_child(a, ("A", "D"))
-    e = add_child(b, ("B", "E"))
-    f = add_child(b, ("B", "F"))
-    g = add_child(b, ("B", "G"))
+    a = add_child(root, make_node(("A",), parent=root))
+    b = add_child(root, make_node(("B",), parent=root))
+    c = add_child(a, make_node(("A", "C"), parent=a))
+    d = add_child(a, make_node(("A", "D"), parent=a))
+    e = add_child(b, make_node(("B", "E"), parent=b))
+    f = add_child(b, make_node(("B", "F"), parent=b))
+    g = add_child(b, make_node(("B", "G"), parent=b))
     return root, a, b, c, d, e, f, g
 
 
-def show_tree(root, level=0):
-    state_val, parent, cs, visit_count, value = root
-    print(f"{'  ' * level}{state_val} n={visit_count} v={value:.2f}")
-    for c in cs.values():
-        show_tree(c, level + 1)
+def show_tree(root):
+    def show(node, level=0):
+        state, visits, val, parent, cs = node
+        print(f"{'  ' * level}{state} n={visits} v={val:.2f}")
+        for c in cs:
+            show(c, level + 1)
+    show(root)
 
 
 def make_verifier(task):
@@ -83,8 +104,9 @@ def ucb(q, n, v, C):
     if v == 0 or n == 0:
         return float("inf")
     else:
-        return q / n + C * math.sqrt(math.log(v) / n) # explore + exploit
-    
+        return q / n + C * math.sqrt(math.log(v) / n)  # explore + exploit
+
+
 # TODO: remove mutation from this
 def backpropagate(node, reward, Q, N):
     while node is not None:
@@ -168,7 +190,6 @@ class MCTS:
         self.logger.info(f"Total nodes created: {self.stats['nodes_created']}")
         self.logger.info(f"Max depth reached: {self.stats['max_depth_reached']}")
 
-
     def try_program(self, state, error_value=0.0):
         program_string = make_program_string(state)
         self.stats["total_simulations"] += 1
@@ -227,7 +248,7 @@ class MCTS:
         # Try each primitive as a possible action
         for primitive in self.primitive_names:
             if primitive not in node.children:
-                new_state = node.state + (primitive,) # TODO: slow
+                new_state = node.state + (primitive,)  # TODO: slow
                 new_node = MCTSNode(new_state, parent=node)
                 node.children[primitive] = new_node
                 self.stats["nodes_created"] += 1
