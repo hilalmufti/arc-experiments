@@ -36,52 +36,29 @@ def make_node(state, parent=None):
     return (state, parent, {}, 0, 0.0)
 
 
-def state(node):
-    state, parent, children, visits, value = node
-    return state
-
-
-def children(node):
-    state, parent, children, visits, value = node
-    return children
-
-
-def visits(node):
-    state, parent, children, visits, value = node
-    return visits
-
-
-def visit(node):
-    state, parent, children, visits, value = node
+def add_child(node, state):
+    child = make_node(state, parent=node)
+    node[2][state] = child  # Add child to parent's children dict
+    return child
 
 
 def make_toy_tree():
     root = make_node(())
-    a = make_node(("A",), parent=root)
-    b = make_node(("B",), parent=root)
-    root[2][("A",)] = a  # Add 'a' to root's children dict
-    root[2][("B",)] = b  # Add 'b' to root's children dict
-    
-    c = make_node(("A", "C"), parent=a)
-    d = make_node(("A", "D"), parent=a)
-    a[2][("A", "C")] = c  # Add 'c' to a's children dict
-    a[2][("A", "D")] = d  # Add 'd' to a's children dict
-    
-    e = make_node(("B", "E"), parent=b)
-    f = make_node(("B", "F"), parent=b)
-    g = make_node(("B", "G"), parent=b)
-    b[2][("B", "E")] = e  # Add 'e' to b's children dict
-    b[2][("B", "F")] = f  # Add 'f' to b's children dict
-    b[2][("B", "G")] = g  # Add 'g' to b's children dict
-    
+    a = add_child(root, ("A",))
+    b = add_child(root, ("B",))
+    c = add_child(a, ("A", "C"))
+    d = add_child(a, ("A", "D"))
+    e = add_child(b, ("B", "E"))
+    f = add_child(b, ("B", "F"))
+    g = add_child(b, ("B", "G"))
     return root, a, b, c, d, e, f, g
 
 
 def show_tree(root, level=0):
-    state_val, parent, child_dict, visit_count, value = root
+    state_val, parent, cs, visit_count, value = root
     print(f"{'  ' * level}{state_val} n={visit_count} v={value:.2f}")
-    for child in children(root).values():
-        show_tree(child, level + 1)
+    for c in cs.values():
+        show_tree(c, level + 1)
 
 
 def make_verifier(task):
