@@ -1,6 +1,7 @@
 name = "ARCLean"
 version = "0.1.0"
 defaultTargets = ["arclean"]
+leanArgs = ["-DLLVM=1"]
 
 [[lean_lib]]
 name = "ARCLean"

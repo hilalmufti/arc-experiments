@@ -30,16 +30,40 @@ class MCTSNode:
 
     def __repr__(self):
         return f"MCTSNode({self.state}, visits={self.visits}, value={self.value}, children={set(self.children.keys())})"
+    
 
+def make_node(state, parent):
+    return (state, parent, {}, 0, 0.0)
 
-def make_evaluator(task):
+def state(node):
+    state, parent, children, visits, value = node
+    return state
+
+def children(node):
+    state, parent, children, visits, value = node
+    return children
+
+def visits(node):
+    state, parent, children, visits, value = node
+    return visits
+
+def make_verifier(task):
     ins = tuple(example["input"] for example in task["train"])
     outs = tuple(example["output"] for example in task["train"])
 
-    def evaluator(program):
+    def verifier(program):
         return all(program(i) == o for i, o in zip(ins, outs))
 
-    return evaluator
+    return verifier
+
+# TODO: add comments
+# TODO: play with this more
+def ucb(q, n, v, C):
+    if v == 0 or n == 0:
+        return float('inf')
+    exploit = q / n
+    explore = C * math.sqrt(math.log(v) / n)
+    return exploit + explore
 
 
 class MCTS:
@@ -137,15 +161,16 @@ class MCTS:
             return error_value
 
     def get_ucb(self, node, child_action):
-        if node.visits == 0 or self.N[(node.state, child_action)] == 0:
-            return float("inf")
-        exploitation = (
-            self.Q[(node.state, child_action)] / self.N[(node.state, child_action)]
-        )
-        exploration = self.exploration_constant * math.sqrt(
-            math.log(node.visits) / self.N[(node.state, child_action)]
-        )
-        return exploitation + exploration
+        return ucb(self.Q[(node.state, child_action)], self.N[(node.state, child_action)], node.visits, self.exploration_constant)
+        # if node.visits == 0 or self.N[(node.state, child_action)] == 0:
+        #     return float("inf")
+        # exploitation = (
+        #     self.Q[(node.state, child_action)] / self.N[(node.state, child_action)]
+        # )
+        # exploration = self.exploration_constant * math.sqrt(
+        #     math.log(node.visits) / self.N[(node.state, child_action)]
+        # )
+        # return exploitation + exploration
 
     def select(self, node):
         path = []
@@ -275,7 +300,7 @@ def solve_mcts(tasks, primitive_names, max_depth, num_simulations=1000):
         mcts = MCTS(
             primitive_names,
             max_depth,
-            make_evaluator(task),
+            make_verifier(task),
             exploration_constant=math.sqrt(2),
         )
         solutions = mcts.search(num_simulations)
