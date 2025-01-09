@@ -32,7 +32,7 @@ class MCTSNode:
         return f"MCTSNode({self.state}, visits={self.visits}, value={self.value}, children={set(self.children.keys())})"
 
 
-def make_node(state, parent):
+def make_node(state, parent=None):
     return (state, parent, {}, 0, 0.0)
 
 
@@ -51,6 +51,10 @@ def visits(node):
     return visits
 
 
+def visit(node):
+    state, parent, children, visits, value = node
+
+
 def make_verifier(task):
     ins = tuple(example["input"] for example in task["train"])
     outs = tuple(example["output"] for example in task["train"])
@@ -62,7 +66,7 @@ def make_verifier(task):
 
 
 def make_program_string(state):
-    left_side = "".join([p + "(" for p in state])
+    left_side = "".join([p + "(" for p in reversed(state)])
     right_side = ")" * len(state)
     return f"lambda I: {left_side}I{right_side}"
 
@@ -72,9 +76,8 @@ def make_program_string(state):
 def ucb(q, n, v, C):
     if v == 0 or n == 0:
         return float("inf")
-    exploit = q / n
-    explore = C * math.sqrt(math.log(v) / n)
-    return exploit + explore
+    else:
+        return q / n + C * math.sqrt(math.log(v) / n) # explore + exploit
 
 
 class MCTS:
@@ -167,10 +170,10 @@ class MCTS:
             self.logger.debug(f"Program evaluation failed: {str(e)}")
             return error_value
 
-    def get_ucb(self, node, child_action):
+    def get_ucb(self, node, action):
         return ucb(
-            self.Q[(node.state, child_action)],
-            self.N[(node.state, child_action)],
+            self.Q[(node.state, action)],
+            self.N[(node.state, action)],
             node.visits,
             self.exploration_constant,
         )
@@ -191,7 +194,6 @@ class MCTS:
             node = child
 
         if path:
-            # print(path)
             self.logger.debug(
                 f"Selection path: {' -> '.join([f'{a}(ucb={u:.2f})' for a, u in path])}"
             )
@@ -208,7 +210,7 @@ class MCTS:
         # Try each primitive as a possible action
         for primitive in self.primitive_names:
             if primitive not in node.children:
-                new_state = node.state + (primitive,)
+                new_state = node.state + (primitive,) # TODO: slow
                 new_node = MCTSNode(new_state, parent=node)
                 node.children[primitive] = new_node
                 self.stats["nodes_created"] += 1
