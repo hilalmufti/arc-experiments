@@ -1,7 +1,7 @@
 import os
 import json
 import inspect
-from typing import Tuple, TypeVar, TypeAlias, Literal
+from typing import Tuple, TypeVar, TypeAlias, Literal, Any
 
 # TODO: these abstractions are not very reusable
 
@@ -94,8 +94,16 @@ def is_easy(tn: TaskName) -> bool:
     return tn in EASY
 
 
-def make_dataset(mode: Literal['training', 'evaluation']) -> Dataset:
-    return {f[:-5]: json.load(open(f"data/{mode}/{f}")) for f in os.listdir(f"data/{mode}")}
+def load_files(fs: list[str], loader=json.load) -> dict[str, Any]:
+    return {f.split('/')[-1]: loader(open(f)) for f in fs}
+
+
+def load_path(path: str, loader=json.load) -> dict[str, Any]:
+    return load_files([f"{path}/{f}" for f in os.listdir(path)], loader)
+
+
+def make_dataset(mode: Literal['training', 'evaluation'], path='data') -> Dataset:
+    return {k[:-5]: v for k, v in load_path(f"{path}/{mode}").items()}
 
 
 load_dataset = make_dataset
