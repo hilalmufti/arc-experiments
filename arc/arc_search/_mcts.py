@@ -13,7 +13,7 @@ import tqdm
 import numpy as np
 
 # TODO: clean up imports
-from arc.load_data import load_tasks
+from arc.load_data import make_dataset
 from arc.arc_search._grammar import read_functions
 from arc.arc_dsl.constants import *
 from arc.arc_dsl.arc_types import Grid
@@ -66,7 +66,7 @@ def is_primitive(p: Primitive) -> bool:
 
 
 def print_abstract_program(ps: AbstractProgram) -> None:
-    print("(>>> " + " ".join(ps) + ")")
+    print("(>>> " + " ".join(reversed(ps)) + ")")
 
 
 def make_state(ps: Optional[AbstractProgram] = None) -> State:
