@@ -3,6 +3,8 @@ import json
 import inspect
 from typing import Tuple, TypeVar, TypeAlias, Literal
 
+# TODO: these abstractions are not very reusable
+
 EASY = {
     "67a3c6ac",
     "68b16354",
@@ -92,24 +94,16 @@ def is_easy(tn: TaskName) -> bool:
     return tn in EASY
 
 
-def make_task_name(filename: str) -> TaskName:
-    return filename[:-5]
-
-
 def make_dataset(mode: Literal['training', 'evaluation']) -> Dataset:
-    return {make_task_name(f): json.load(open(f"data/{mode}/{f}")) for f in os.listdir(f"data/{mode}")}
+    return {f[:-5]: json.load(open(f"data/{mode}/{f}")) for f in os.listdir(f"data/{mode}")}
+
+
+load_dataset = make_dataset
 
 
 def get_easy(ds: Dataset) -> Dataset:
     return {k: v for k, v in ds.items() if is_easy(k)}
 
 
-def load_solutions(mode):
-    directory = ("../" if not os.path.exists("data") else "") + f"data/{mode}"
-
-    solutions = {}
-    for f in os.listdir(directory):
-        with open(f"{directory}/{f}") as fp:
-            solution = json.load(fp)
-            solutions[make_task_name(f)] = solution
-    return solutions
+def make_easy_dataset() -> Dataset:
+    return get_easy(make_dataset('training'))
