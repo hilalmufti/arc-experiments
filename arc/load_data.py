@@ -71,40 +71,34 @@ easy = {
     "1c786137",
 }
 
+Grid = list[list[int]]
 
-type Pair[T, U] = tuple[T, U]
-Input = int
-Output = int
-type Task = list[Pair[Input, Output]]
+# type Pair[T, U] = tuple[T, U]
+Input = Grid
+Output = Grid
+
+# Sample = Pair[Input, Output]
+Sample = dict[str, Grid] # think of this as (inputs, outputs), but with named fields
+type Task = list[Sample] # list of input-output pairs
+
+# TODO: make this more general
+ARCTask = dict[str, Task] # task with train and test sets
+
 TaskName = str
-Dataset = dict[TaskName, Task]
+Dataset = dict[TaskName, ARCTask] # we'll have 400 train tasks, 400 test tasks
 
-def get_taskname(filename: str) -> str:
+
+def make_task_name(filename: str) -> TaskName:
     return filename[:-5]
 
-def load_tasks(mode):
-    tasks = {}
-    prefix = "../" if not os.path.exists("data") else ""
-    if mode == "easy":
-        is_easy = True
-        mode = "training"
-    else:
-        is_easy = False
-    for f in os.listdir(prefix + f"data/{mode}"):
-        if is_easy and get_taskname(f) not in easy:
-            continue
-        with open(prefix + f"data/{mode}/{f}") as fp:
-            task = json.load(fp)
-            task["train"] = tuple(task["train"])
-            task["test"] = tuple(task["test"])
-            for dct in task["train"]:
-                dct["input"] = tuple(map(tuple, dct["input"]))
-                dct["output"] = tuple(map(tuple, dct["output"]))
-            for dct in task["test"]:
-                dct["input"] = tuple(map(tuple, dct["input"]))
-                dct["output"] = tuple(map(tuple, dct["output"]))
-            tasks[get_taskname(f)] = task
-    return tasks
+
+def make_dataset(mode) -> Dataset:
+    return {make_task_name(f): json.load(open(f"data/{mode}/{f}")) for f in os.listdir(f"data/{mode}")}
+
+
+# TODO: 
+def get_easy_tasks(tasks):
+    raise NotImplementedError
 
 
 def load_solutions(mode):
@@ -114,5 +108,5 @@ def load_solutions(mode):
     for f in os.listdir(directory):
         with open(f"{directory}/{f}") as fp:
             solution = json.load(fp)
-            solutions[get_taskname(f)] = solution
+            solutions[make_task_name(f)] = solution
     return solutions
