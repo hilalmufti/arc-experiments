@@ -12,14 +12,20 @@ from typing import Callable, NamedTuple, Optional
 import tqdm
 import numpy as np
 
+# TODO: clean up imports
 from arc.load_data import load_tasks
 from arc.arc_search._grammar import read_functions
 from arc.arc_dsl.constants import *
+from arc.arc_dsl.arc_types import Grid
 import arc.arc_dsl.dsl as dsl
 from arc.arc_dsl.dsl import *
 from arc.utils import set_seed
 
+
 SEED = 546
+
+# TODO
+PRIMITIVES = {"add"}
 
 
 class MCTSNode:
@@ -32,7 +38,57 @@ class MCTSNode:
 
     def __repr__(self):
         return f"MCTSNode({self.state}, visits={self.visits}, value={self.value}, children={set(self.children.keys())})"
-    
+
+# Maybe the programs should know their targets?
+
+# TODO: make symbolic program an sexpression
+Primitive = str
+AbstractProgram = tuple[Primitive, ...]
+SymbolicProgram = str
+Program = Callable[[Grid], Grid]
+
+Verifier = Callable[[Program], bool]
+
+Reward = float
+Done = bool
+
+@dataclass(frozen=True)
+class State:
+    ps: AbstractProgram  # primitives
+    v: Verifier
+    done: Done
+    reward: Reward
+
+
+# TODO
+def is_primitive(p: Primitive) -> bool:
+    return p in PRIMITIVES
+
+
+def print_abstract_program(ps: AbstractProgram) -> None:
+    print("(>>> " + " ".join(ps) + ")")
+
+
+def make_state(ps: Optional[AbstractProgram] = None) -> State:
+    return State(ps or ())
+
+
+def program_compose(ps: AbstractProgram, p: Primitive) -> AbstractProgram:
+    return ps + (p,)
+
+
+def make_symbolic_program(ps: AbstractProgram) -> SymbolicProgram:
+    return make_program_string(ps)
+
+
+def make_program(sp: SymbolicProgram) -> Program:
+    return eval(sp)
+
+
+def step(s: State, p: Primitive) -> tuple[State, Reward, Done]:
+    ...
+
+
 
 # a node represents a state in the search space when doing tree search
 @dataclass(frozen=True)
@@ -40,13 +96,12 @@ class Node:
     state: tuple[str, ...]
     visits: int = 0
     value: float = 0.0
-    parent: Optional['Node'] = None
-    children: Optional[list['Node']] = None
+    parent: Optional["Node"] = None
+    children: Optional[set["Node"]] = None
 
 
 def make_node(state: tuple[str, ...], parent: Optional[Node] = None) -> Node:
-    return Node(state, 0, 0.0, parent, None)
-
+    return Node(state, 0, 0.0, parent, set())
 
 
 def node_append(node: Node, child: Node) -> tuple[Node, Node]:
@@ -55,11 +110,23 @@ def node_append(node: Node, child: Node) -> tuple[Node, Node]:
             match children:
                 case None:
                     # Create child with the current node as parent
-                    new_child = Node(child.state, child.visits, child.value, node, child.children)
-                    return Node(node.state, node.visits, node.value, node.parent, [new_child]), new_child
+                    new_child = Node(
+                        child.state, child.visits, child.value, node, child.children
+                    )
+                    return Node(
+                        node.state, node.visits, node.value, node.parent, [new_child]
+                    ), new_child
                 case _:
-                    new_child = Node(child.state, child.visits, child.value, node, child.children)
-                    return Node(node.state, node.visits, node.value, node.parent, children + [new_child]), new_child
+                    new_child = Node(
+                        child.state, child.visits, child.value, node, child.children
+                    )
+                    return Node(
+                        node.state,
+                        node.visits,
+                        node.value,
+                        node.parent,
+                        children + [new_child],
+                    ), new_child
 
 
 def node_str(node: Node) -> str:
@@ -77,48 +144,50 @@ def show_tree(root: Node) -> None:
 
 
 def tree_str(root: Node) -> str:
-    def _tree_str(node: Node, level: int=0) -> str:
+    def _tree_str(node: Node, level: int = 0) -> str:
         match node:
             case Node(_, _, _, _, children):
                 match children:
                     case None:
                         return "  " * level + node_str(node)
                     case _:
-                        children_str = "\n".join(_tree_str(child, level + 1) for child in children)
+                        children_str = "\n".join(
+                            _tree_str(child, level + 1) for child in children
+                        )
                         return "  " * level + node_str(node) + "\n" + children_str
+
     return _tree_str(root)
 
 
 # TODO: make this work
-def make_tree(xs):
-    ...
+def make_tree(xs): ...
 
 
 def make_toy_tree():
     root = Node(())
     root, a = node_append(root, Node(("A",)))
     root, b = node_append(root, Node(("B",)))
-    
+
     # Get the actual nodes from root's children
     a = root.children[0]  # Get the actual 'A' node
     b = root.children[1]  # Get the actual 'B' node
-    
+
     # Now append to the actual nodes
     new_a, c = node_append(a, Node(("A", "C")))
     root = Node(root.state, root.visits, root.value, root.parent, [new_a, b])
-    
+
     new_a, d = node_append(new_a, Node(("A", "D")))
     root = Node(root.state, root.visits, root.value, root.parent, [new_a, b])
-    
+
     new_b, e = node_append(b, Node(("B", "E")))
     root = Node(root.state, root.visits, root.value, root.parent, [new_a, new_b])
-    
+
     new_b, f = node_append(new_b, Node(("B", "F")))
     root = Node(root.state, root.visits, root.value, root.parent, [new_a, new_b])
-    
+
     new_b, g = node_append(new_b, Node(("B", "G")))
     root = Node(root.state, root.visits, root.value, root.parent, [new_a, new_b])
-    
+
     return root
 
 

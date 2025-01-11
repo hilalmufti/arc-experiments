@@ -12,6 +12,10 @@ dependencies = [
     "nltk>=3.9.1",
     "hypothesis>=6.123.8",
     "pyrsistent>=0.20.0",
+    "jax>=0.4.38",
+    "chex>=0.1.88",
+    "rich>=13.9.4",
+    "mctx>=0.0.5",
 ]
 
 [build-system]
