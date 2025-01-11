@@ -1,6 +1,7 @@
 import os
 import json
 import inspect
+from typing import Tuple, TypeVar, TypeAlias
 
 easy = {
     "67a3c6ac",
@@ -69,6 +70,14 @@ easy = {
     "3618c87e",
     "1c786137",
 }
+
+
+type Pair[T, U] = tuple[T, U]
+Input = int
+Output = int
+type Task = list[Pair[Input, Output]]
+TaskName = str
+Dataset = dict[TaskName, Task]
 
 def get_taskname(filename: str) -> str:
     return filename[:-5]
