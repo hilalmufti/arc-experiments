@@ -4,8 +4,10 @@ import math
 import random
 import time
 import os
+from dataclasses import dataclass
 from collections import defaultdict
 from datetime import datetime
+from typing import Callable, NamedTuple, Optional
 
 import tqdm
 import numpy as np
@@ -30,69 +32,94 @@ class MCTSNode:
 
     def __repr__(self):
         return f"MCTSNode({self.state}, visits={self.visits}, value={self.value}, children={set(self.children.keys())})"
+    
+
+# a node represents a state in the search space when doing tree search
+@dataclass(frozen=True)
+class Node:
+    state: tuple[str, ...]
+    visits: int = 0
+    value: float = 0.0
+    parent: Optional['Node'] = None
+    children: Optional[list['Node']] = None
 
 
-def make_node(state, parent=None):
-    return [state, 0, 0.0, parent, []]
+def make_node(state: tuple[str, ...], parent: Optional[Node] = None) -> Node:
+    return Node(state, 0, 0.0, parent, None)
 
 
-def node_state(node):
-    return node[0]
+
+def node_append(node: Node, child: Node) -> tuple[Node, Node]:
+    match node:
+        case Node(_, _, _, _, children):
+            match children:
+                case None:
+                    # Create child with the current node as parent
+                    new_child = Node(child.state, child.visits, child.value, node, child.children)
+                    return Node(node.state, node.visits, node.value, node.parent, [new_child]), new_child
+                case _:
+                    new_child = Node(child.state, child.visits, child.value, node, child.children)
+                    return Node(node.state, node.visits, node.value, node.parent, children + [new_child]), new_child
 
 
-def node_visits(node):
-    return node[1]
+def node_str(node: Node) -> str:
+    match node:
+        case Node(state, visits, value, _, _):
+            return f"{state} n={visits} v={value:.2f}"
 
 
-def node_value(node):
-    return node[2]
-
-
-def node_parent(node):
-    return node[3]
-
-
-def node_children(node):
-    return node[4]
-
-
-def node_append(node, child):
-    node_children(node).append(child)
-    return child
-
-
-# TODO: remove mutation from this
-def node_visit(node):
-    node[1] += 1
-    return node_visits(node)
-
-
-def node_str(node):
-    return f"{node_state(node)} n={node_visits(node)} v={node_value(node):.2f}"
-
-
-def show_node(node):
+def show_node(node: Node) -> None:
     print(node_str(node))
 
 
-def show_tree(root):
-    def show(node, level=0):
-        print(f"{'  ' * level}{node_str(node)}")
-        for c in node_children(node):
-            show(c, level + 1)
-    show(root)
+def show_tree(root: Node) -> None:
+    print(tree_str(root))
+
+
+def tree_str(root: Node) -> str:
+    def _tree_str(node: Node, level: int=0) -> str:
+        match node:
+            case Node(_, _, _, _, children):
+                match children:
+                    case None:
+                        return "  " * level + node_str(node)
+                    case _:
+                        children_str = "\n".join(_tree_str(child, level + 1) for child in children)
+                        return "  " * level + node_str(node) + "\n" + children_str
+    return _tree_str(root)
+
+
+# TODO: make this work
+def make_tree(xs):
+    ...
 
 
 def make_toy_tree():
-    root = make_node(())
-    a = node_append(root, make_node(("A",), parent=root))
-    b = node_append(root, make_node(("B",), parent=root))
-    c = node_append(a, make_node(("A", "C"), parent=a))
-    d = node_append(a, make_node(("A", "D"), parent=a))
-    e = node_append(b, make_node(("B", "E"), parent=b))
-    f = node_append(b, make_node(("B", "F"), parent=b))
-    g = node_append(b, make_node(("B", "G"), parent=b))
-    return root, a, b, c, d, e, f, g
+    root = Node(())
+    root, a = node_append(root, Node(("A",)))
+    root, b = node_append(root, Node(("B",)))
+    
+    # Get the actual nodes from root's children
+    a = root.children[0]  # Get the actual 'A' node
+    b = root.children[1]  # Get the actual 'B' node
+    
+    # Now append to the actual nodes
+    new_a, c = node_append(a, Node(("A", "C")))
+    root = Node(root.state, root.visits, root.value, root.parent, [new_a, b])
+    
+    new_a, d = node_append(new_a, Node(("A", "D")))
+    root = Node(root.state, root.visits, root.value, root.parent, [new_a, b])
+    
+    new_b, e = node_append(b, Node(("B", "E")))
+    root = Node(root.state, root.visits, root.value, root.parent, [new_a, new_b])
+    
+    new_b, f = node_append(new_b, Node(("B", "F")))
+    root = Node(root.state, root.visits, root.value, root.parent, [new_a, new_b])
+    
+    new_b, g = node_append(new_b, Node(("B", "G")))
+    root = Node(root.state, root.visits, root.value, root.parent, [new_a, new_b])
+    
+    return root
 
 
 def make_verifier(task):
