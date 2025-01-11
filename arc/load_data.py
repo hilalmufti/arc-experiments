@@ -1,9 +1,9 @@
 import os
 import json
 import inspect
-from typing import Tuple, TypeVar, TypeAlias
+from typing import Tuple, TypeVar, TypeAlias, Literal
 
-easy = {
+EASY = {
     "67a3c6ac",
     "68b16354",
     "74dd1130",
@@ -88,17 +88,20 @@ TaskName = str
 Dataset = dict[TaskName, ARCTask] # we'll have 400 train tasks, 400 test tasks
 
 
+def is_easy(tn: TaskName) -> bool:
+    return tn in EASY
+
+
 def make_task_name(filename: str) -> TaskName:
     return filename[:-5]
 
 
-def make_dataset(mode) -> Dataset:
+def make_dataset(mode: Literal['training', 'evaluation']) -> Dataset:
     return {make_task_name(f): json.load(open(f"data/{mode}/{f}")) for f in os.listdir(f"data/{mode}")}
 
 
-# TODO: 
-def get_easy_tasks(tasks):
-    raise NotImplementedError
+def get_easy(ds: Dataset) -> Dataset:
+    return {k: v for k, v in ds.items() if is_easy(k)}
 
 
 def load_solutions(mode):
