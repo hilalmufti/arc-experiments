@@ -13,19 +13,24 @@ import tqdm
 import numpy as np
 
 # TODO: clean up imports
-from arc.load_data import make_dataset
+from arc.load_data import make_dataset, TaskM, SampleM, GridM
 from arc.arc_search._grammar import read_functions
-from arc.arc_dsl.constants import *
+from arc.utils import set_seed
+
 from arc.arc_dsl.arc_types import Grid
 import arc.arc_dsl.dsl as dsl
+from arc.arc_dsl.constants import *
 from arc.arc_dsl.dsl import *
-from arc.utils import set_seed
+
 
 
 SEED = 546
 
-# TODO
+# TODO: add rest of the primitives
 PRIMITIVES = {"add"}
+
+
+# TODO: remove redundancy between grid representations
 
 
 class MCTSNode:
@@ -51,6 +56,9 @@ Verifier = Callable[[Program], bool]
 
 Reward = float
 Done = bool
+
+Sample = dict[str, Grid]
+Task = list[Sample]
 
 @dataclass(frozen=True)
 class State:
@@ -91,9 +99,34 @@ def make_state(ps: Optional[AbstractProgram] = None) -> State:
     return State(ps or (), False, 0.0)
 
 
+def make_grid(g: GridM) -> Grid:
+    return tuple(tuple(row) for row in g)
+
+
+def make_sample(s: SampleM) -> Sample:
+    return {k: make_grid(g) for k, g in s.items()}
+
+
+# TODO: Can I do this lazily?
+def make_task(t: TaskM) -> Task:
+    return [make_sample(s) for s in t]
+
+
+def make_verifier(t: Task) -> Verifier:
+    def verifier(p: Program) -> bool:
+        return all(p(i) == o for i, o in zip((s['input'] for s in t), (s['output'] for s in t)))
+    return verifier
+
+
+# TODO
+def print_grid(g: Grid):
+    raise NotImplementedError
+
+
 def make_step(v: Verifier) -> Callable[[State, Primitive], tuple[State, Reward, Done]]:
     def step(s: State, p: Primitive) -> tuple[State, Reward, Done]:
-        ps = aprogram_compose(s.ps, p)
+        # ps = aprogram_compose(s.ps, p)
+        ps = aprogram_compose(p, s.ps)
         reward = v(make_program(make_sprogram(ps)))
         done = s.done or reward != 0 # TODO
 
@@ -206,7 +239,7 @@ def make_toy_tree():
 
 
 # TODO
-def make_verifier(task):
+def _make_verifier(task):
     ins = tuple(example["input"] for example in task["train"])
     outs = tuple(example["output"] for example in task["train"])
 
@@ -461,7 +494,7 @@ def solve_mcts(tasks, primitive_names, max_depth, num_simulations=1000):
         mcts = MCTS(
             primitive_names,
             max_depth,
-            make_verifier(task),
+            _make_verifier(task),
             exploration_constant=math.sqrt(2),
         )
         solutions = mcts.search(num_simulations)

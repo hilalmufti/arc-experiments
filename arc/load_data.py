@@ -73,18 +73,18 @@ EASY = {
     "1c786137",
 }
 
-Grid = list[list[int]]
+GridM = list[list[int]]
 
 # type Pair[T, U] = tuple[T, U]
-Input = Grid
-Output = Grid
+Input = GridM
+Output = GridM
 
 # Sample = Pair[Input, Output]
-Sample = dict[str, Grid] # think of this as (inputs, outputs), but with named fields
-type Task = list[Sample] # list of input-output pairs
+SampleM = dict[str, GridM] # think of this as (inputs, outputs), but with named fields
+type TaskM = list[SampleM] # list of input-output pairs
 
 # TODO: make this more general
-ARCTask = dict[str, Task] # task with train and test sets
+ARCTask = dict[str, TaskM] # task with train and test sets
 
 TaskName = str
 Dataset = dict[TaskName, ARCTask] # we'll have 400 train tasks, 400 test tasks
