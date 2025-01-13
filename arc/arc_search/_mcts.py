@@ -43,7 +43,7 @@ class MCTSNode:
 
 # TODO: make symbolic program an sexpression
 Primitive = str
-AbstractProgram = tuple[Primitive, ...]
+AbstractProgram = tuple[Primitive, ...] # TODO: replace this with purely functional data structures
 SymbolicProgram = str
 Program = Callable[[Grid], Grid]
 
@@ -55,7 +55,6 @@ Done = bool
 @dataclass(frozen=True)
 class State:
     ps: AbstractProgram  # primitives
-    v: Verifier
     done: Done
     reward: Reward
 
@@ -65,19 +64,21 @@ def is_primitive(p: Primitive) -> bool:
     return p in PRIMITIVES
 
 
-def print_abstract_program(ps: AbstractProgram) -> None:
+# TODO
+def make_aprogram():
+    raise NotImplementedError
+
+
+def print_aprogram(ps: AbstractProgram) -> None:
     print("(>>> " + " ".join(reversed(ps)) + ")")
 
 
-def make_state(ps: Optional[AbstractProgram] = None) -> State:
-    return State(ps or ())
+# TODO: add additional properties to Primitive to guarantee correctness
+def aprogram_compose(p: Primitive, ps: AbstractProgram) -> AbstractProgram:
+    return (p.replace(" ", "_"),) + ps
 
 
-def program_compose(ps: AbstractProgram, p: Primitive) -> AbstractProgram:
-    return ps + (p,)
-
-
-def make_symbolic_program(ps: AbstractProgram) -> SymbolicProgram:
+def make_sprogram(ps: AbstractProgram) -> SymbolicProgram:
     return make_program_string(ps)
 
 
@@ -85,9 +86,22 @@ def make_program(sp: SymbolicProgram) -> Program:
     return eval(sp)
 
 
-def step(s: State, p: Primitive) -> tuple[State, Reward, Done]:
-    ...
+# TODO: fix done, reward
+def make_state(ps: Optional[AbstractProgram] = None) -> State:
+    return State(ps or (), False, 0.0)
 
+
+def make_step(v: Verifier) -> Callable[[State, Primitive], tuple[State, Reward, Done]]:
+    def step(s: State, p: Primitive) -> tuple[State, Reward, Done]:
+        ps = aprogram_compose(s.ps, p)
+        reward = v(make_program(make_sprogram(ps)))
+        done = s.done or reward != 0 # TODO
+
+
+        # done = v(make_program(make_sprogram(ps)))
+        # reward = 1.0 if done else 0.0
+        return make_state(ps), reward, done
+    return step
 
 
 # a node represents a state in the search space when doing tree search
@@ -191,6 +205,7 @@ def make_toy_tree():
     return root
 
 
+# TODO
 def make_verifier(task):
     ins = tuple(example["input"] for example in task["train"])
     outs = tuple(example["output"] for example in task["train"])
@@ -202,7 +217,7 @@ def make_verifier(task):
 
 
 def make_program_string(state):
-    lhs = "".join([p + "(" for p in reversed(state)])
+    lhs = "".join([p + "(" for p in state])
     rhs = ")" * len(state)
     return f"lambda I: {lhs}I{rhs}"
 
