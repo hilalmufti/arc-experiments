@@ -9,7 +9,6 @@ from itertools import product, islice
 
 from nltk.grammar import CFG
 from nltk.parse.generate import generate
-from tqdm.contrib.concurrent import process_map
 
 from arc.load_data import load_tasks
 from arc.arc_search._grammar import read_functions, read_constants, count_params, dsl2cfg
