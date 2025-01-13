@@ -52,7 +52,7 @@ AbstractProgram = tuple[Primitive, ...] # TODO: replace this with purely functio
 SymbolicProgram = str
 Program = Callable[[Grid], Grid]
 
-Verifier = Callable[[Program], bool]
+Verifier = Callable[[Program], float]
 
 Reward = float
 Done = bool
@@ -113,8 +113,11 @@ def make_task(t: TaskM) -> Task:
 
 
 def make_verifier(t: Task) -> Verifier:
-    def verifier(p: Program) -> bool:
-        return all(p(i) == o for i, o in zip((s['input'] for s in t), (s['output'] for s in t)))
+    def verifier(p: Program) -> Reward:
+        try:
+            return float(all(p(i) == o for i, o in zip((s['input'] for s in t), (s['output'] for s in t))))
+        except:
+            return -1.0
     return verifier
 
 
@@ -125,14 +128,9 @@ def print_grid(g: Grid):
 
 def make_step(v: Verifier) -> Callable[[State, Primitive], tuple[State, Reward, Done]]:
     def step(s: State, p: Primitive) -> tuple[State, Reward, Done]:
-        # ps = aprogram_compose(s.ps, p)
         ps = aprogram_compose(p, s.ps)
         reward = v(make_program(make_sprogram(ps)))
         done = s.done or reward != 0 # TODO
-
-
-        # done = v(make_program(make_sprogram(ps)))
-        # reward = 1.0 if done else 0.0
         return make_state(ps), reward, done
     return step
 
