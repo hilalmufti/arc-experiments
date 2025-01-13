@@ -19,6 +19,7 @@ from arc.utils import set_seed
 
 from arc.arc_dsl.arc_types import Grid
 import arc.arc_dsl.dsl as dsl
+from arc.arc_dsl.solvers import solve_a85d4709
 from arc.arc_dsl.constants import *
 from arc.arc_dsl.dsl import *
 
@@ -50,7 +51,7 @@ class MCTSNode:
 Primitive = str
 AbstractProgram = tuple[Primitive, ...] # TODO: replace this with purely functional data structures
 SymbolicProgram = str
-Program = Callable[[Grid], Grid]
+Program = Callable[[Grid], Grid] # Note, I can actually prune the search space by using this type (prune start = programs that take in a grid)
 
 Verifier = Callable[[Program], float]
 
@@ -95,8 +96,8 @@ def make_program(sp: SymbolicProgram) -> Program:
 
 
 # TODO: fix done, reward
-def make_state(ps: Optional[AbstractProgram] = None) -> State:
-    return State(ps or (), False, 0.0)
+def make_state(ps: Optional[AbstractProgram] = None, done: Optional[Done] = None, reward: Optional[Reward] = None) -> State:
+    return State(ps or (), done or False, reward or 0.0)
 
 
 def make_grid(g: GridM) -> Grid:
@@ -116,7 +117,8 @@ def make_verifier(t: Task) -> Verifier:
     def verifier(p: Program) -> Reward:
         try:
             return float(all(p(i) == o for i, o in zip((s['input'] for s in t), (s['output'] for s in t))))
-        except:
+        except Exception as e:
+            print(e)
             return -1.0
     return verifier
 
@@ -126,12 +128,13 @@ def print_grid(g: Grid):
     raise NotImplementedError
 
 
+# TODO: do you always want to stop when you get a `done`?
 def make_step(v: Verifier) -> Callable[[State, Primitive], tuple[State, Reward, Done]]:
     def step(s: State, p: Primitive) -> tuple[State, Reward, Done]:
         ps = aprogram_compose(p, s.ps)
         reward = v(make_program(make_sprogram(ps)))
-        done = s.done or reward != 0 # TODO
-        return make_state(ps), reward, done
+        done = s.done or reward != 0
+        return make_state(ps, done, reward), reward, done
     return step
 
 
