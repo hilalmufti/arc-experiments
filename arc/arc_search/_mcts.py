@@ -123,6 +123,10 @@ def make_verifier(t: Task) -> Verifier:
     return verifier
 
 
+def state_reset(s: State) -> State:
+    return make_state()
+
+
 # TODO: do you always want to stop when you get a `done`?
 def make_step(v: Verifier) -> Callable[[State, Primitive], tuple[State, Reward, Done]]:
     def step(s: State, p: Primitive) -> tuple[State, Reward, Done]:

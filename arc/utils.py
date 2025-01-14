@@ -1,6 +1,8 @@
-from contextlib import contextmanager
 import random
 import time
+from contextlib import contextmanager
+from dataclasses import dataclass
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -44,6 +46,7 @@ def plot_grid(g: GridM):
     plt.show()
 
 
+# TODO: make these colors nicer
 def print_grid(g):
     colors = {
         0: '\033[40m  \033[0m',         # Black (#000)
